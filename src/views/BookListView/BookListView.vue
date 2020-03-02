@@ -1,6 +1,13 @@
 <template>
   <div>
     <div style="padding: 8px 4px;">
+      <button style="margin-right: 12px" @click="skip=6*24">按日</button>
+      <button style="margin-right: 12px" @click="skip=6*12">按半日</button>
+      <button style="margin-right: 12px" @click="skip=6*6">按6小时日</button>
+      <button style="margin-right: 12px" @click="skip=6">按小时</button>
+      <button style="margin-right: 12px" @click="skip=0">按10min</button>
+    </div>
+    <div style="padding: 8px 4px;">
       <button style="margin-right: 12px;" @click="mode='view'">点击</button>
       <button style="margin-right: 12px;" @click="mode='view-incr'">点击增长</button>
       <button style="margin-right: 12px;" @click="mode='fav'">收藏</button>
@@ -33,6 +40,7 @@ export default {
       bookNames: [],
       checked  : [],
       mode     : 'view',
+      skip     : null,
     };
   },
   computed: {
@@ -41,6 +49,9 @@ export default {
     },
     chart() {
       let series = this.records.map(([name, list]) => {
+        if (this.skip) {
+          list = list.filter((v, i) => !(i % this.skip));
+        }
         let fav = {
           type: 'line',
           name: `${name}-收藏`,
@@ -72,10 +83,17 @@ export default {
         // return [fav, view];
       }).flat();
       return {
-        xAxis  : {type: 'time'},
-        yAxis  : {type: 'value', min: 'minValue'},
-        legend : {},
-        tooltip: {
+        xAxis   : {type: 'time'},
+        yAxis   : {type: 'value', min: 'dataMin'},
+        legend  : {},
+        dataZoom: [
+          {
+            type      : 'slider',
+            xAxisIndex: 0,
+            filterMode: 'empty',
+          },
+        ],
+        tooltip : {
           trigger    : 'axis',
           axisPointer: {
             type     : 'cross',
@@ -98,6 +116,7 @@ export default {
     this.checked = Object.keys(grouped);
     this.bookNames = Object.keys(grouped);
   },
+  methods : {byHourClicked() { }},
 };
 </script>
 
