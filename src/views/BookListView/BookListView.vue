@@ -1,16 +1,20 @@
 <template>
   <div>
     <div style="padding: 8px 4px;">
-      <button style="margin-right: 12px" @click="skip=6*24">按日</button>
-      <button style="margin-right: 12px" @click="skip=6*12">按半日</button>
-      <button style="margin-right: 12px" @click="skip=6*6">按6小时日</button>
-      <button style="margin-right: 12px" @click="skip=6">按小时</button>
-      <button style="margin-right: 12px" @click="skip=0">按10min</button>
+      <button style="margin-right: 12px" @click="getData('1d')">按日</button>
+      <button style="margin-right: 12px" @click="getData('12h')">按半日</button>
+      <button style="margin-right: 12px" @click="getData('6h')">按6小时</button>
+      <button style="margin-right: 12px" @click="getData('3h')">按3小时</button>
+      <button style="margin-right: 12px" @click="getData('1h')">按小时</button>
+      <button style="margin-right: 12px" @click="getData('30m')">按30min</button>
+      <button style="margin-right: 12px" @click="getData('10m')">按10min</button>
     </div>
     <div style="padding: 8px 4px;">
       <button style="margin-right: 12px;" @click="mode='view'">点击</button>
+      <button style="margin-right: 12px;" @click="mode='view-week'">周点击</button>
       <button style="margin-right: 12px;" @click="mode='view-incr'">点击增长</button>
       <button style="margin-right: 12px;" @click="mode='fav'">收藏</button>
+      <button style="margin-right: 12px;" @click="mode='fav-week'">周收藏</button>
       <button style="margin-right: 12px;" @click="mode='fav-incr'">收藏增长</button>
       <button @click="mode='both'">全部</button>
     </div>
@@ -55,28 +59,45 @@ export default {
         let fav = {
           type: 'line',
           name: `${name}-收藏`,
-          data: list.map(({batch_id, total_favor}) => [(+batch_id), total_favor]),
+          data: list.map(({batch_time, total_favor}) => [(new Date(batch_time)), total_favor]),
+        };
+        let favWeek = {
+          type: 'line',
+          name: `${name}-周收藏`,
+          data: list.map(({batch_time, week_favor}) => [(new Date(batch_time)), week_favor]),
         };
         let view = {
           type: 'line',
           name: `${name}-点击`,
-          data: list.map(({batch_id, total_click}) => [(+batch_id), total_click]),
+          data: list.map(({batch_time, total_click}) => [(new Date(batch_time)), total_click]),
+        };
+        let viewWeek = {
+          type: 'line',
+          name: `${name}-周点击`,
+          data: list.map(({batch_time, week_click}) => [(new Date(batch_time)), week_click]),
         };
         let favIncr = {
           type: 'line',
           name: `${name}-收藏增长`,
+          // stack: '收藏增长',
+          // areaStyle: {},
           data: list.slice(1)
-            .map(({batch_id, total_favor}, index) => [(+batch_id), total_favor - list[index].total_favor]),
+            .map(({batch_time, total_favor}, index) => [(new Date(batch_time)), total_favor - list[index].total_favor]),
         };
         let viewIncr = {
-          type: 'line',
-          name: `${name}-点击增长`,
-          data: list.slice(1)
-            .map(({batch_id, total_click}, index) => [(+batch_id), total_click - list[index].total_click]),
+          type : 'line',
+          name : `${name}-点击增长`,
+          // stack: '点击增长',
+          // areaStyle: {},
+          data : list.slice(1)
+            .map(({batch_time, total_click}, index) =>
+              [(new Date(batch_time)), total_click - list[index].total_click]),
         };
         if (!this.checked.includes(name)) return [];
         if (this.mode === 'view') return view;
+        if (this.mode === 'view-week') return viewWeek;
         if (this.mode === 'fav') return fav;
+        if (this.mode === 'fav-week') return favWeek;
         if (this.mode === 'view-incr') return viewIncr;
         if (this.mode === 'fav-incr') return favIncr;
         else return [fav, view, viewIncr, favIncr];
@@ -108,15 +129,19 @@ export default {
     },
   },
   async created() {
-    let all = await Promise.all(this.bookListIds.map(id => getRecordByBookList(id)));
-    all = all.map(x => x.data).flat();
-    let grouped = _.groupBy(all, x => x.book_name);
-    all = Object.entries(grouped);
-    this.records = all;
-    this.checked = Object.keys(grouped);
-    this.bookNames = Object.keys(grouped);
+    this.getData();
   },
-  methods : {byHourClicked() { }},
+  methods : {
+    async getData(type = '30m') {
+      let all = await Promise.all(this.bookListIds.map(id => getRecordByBookList(id, type)));
+      all = all.map(x => x.data).flat();
+      let grouped = _.groupBy(all, x => x.book_name);
+      all = Object.entries(grouped);
+      this.records = all;
+      this.checked = this.checked.length > 0 ? this.checked : Object.keys(grouped);
+      this.bookNames = Object.keys(grouped);
+    },
+  },
 };
 </script>
 
